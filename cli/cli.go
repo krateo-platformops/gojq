@@ -11,7 +11,7 @@ import (
 
 	"github.com/mattn/go-isatty"
 
-	"github.com/itchyny/gojq"
+	"github.com/braghettos/gojq"
 )
 
 const name = "gojq"

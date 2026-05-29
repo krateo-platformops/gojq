@@ -1555,7 +1555,7 @@ func delpaths(v, p any, a allocator) any {
 			return &func1WrapError{"delpaths", v, p, err}
 		}
 	}
-	return deleteEmpty(u)
+	return deleteEmpty(u, a)
 }
 
 func update(v any, path []any, n any, a allocator) (any, error) {
@@ -1742,31 +1742,63 @@ func updateArraySlice(v []any, m map[string]any, path []any, n any, a allocator)
 	}
 }
 
-func deleteEmpty(v any) any {
+// deleteEmpty removes the struct{}{} empty-markers delpaths planted via
+// update, recursively cleaning surviving children. The allocator `a`
+// distinguishes gojq-owned nodes from the caller's input: a node is
+// mutated IN PLACE only when a.allocated(v) (gojq made it during the
+// update pass); a non-allocated node (a sub-tree still ALIASED to the
+// caller's input, because update's copy-on-write only copies the
+// assignment spine and leaves sibling sub-trees shared) is copied into a
+// freshly-allocated node so the input is never written. This mirrors the
+// updateObject/updateArrayIndex/updateArraySlice CoW pattern (func.go
+// :1622/:1661/:1719) and is what makes the shared input genuinely
+// read-only for delpaths/del — the prerequisite for the apistage shallow
+// envelope (no per-serve deep copy).
+func deleteEmpty(v any, a allocator) any {
 	switch v := v.(type) {
 	case struct{}:
 		return nil
 	case map[string]any:
-		for k, w := range v {
-			if w == struct{}{} {
-				delete(v, k)
-			} else {
-				v[k] = deleteEmpty(w)
+		if a.allocated(v) {
+			for k, w := range v {
+				if w == struct{}{} {
+					delete(v, k)
+				} else {
+					v[k] = deleteEmpty(w, a)
+				}
+			}
+			return v
+		}
+		// Aliased input map — copy surviving keys into a fresh node.
+		w := a.makeObject(len(v))
+		for k, x := range v {
+			if x != struct{}{} {
+				w[k] = deleteEmpty(x, a)
 			}
 		}
-		return v
+		return w
 	case []any:
-		var j int
-		for _, w := range v {
-			if w != struct{}{} {
-				v[j] = deleteEmpty(w)
-				j++
+		if a.allocated(v) {
+			var j int
+			for _, w := range v {
+				if w != struct{}{} {
+					v[j] = deleteEmpty(w, a)
+					j++
+				}
+			}
+			for i := j; i < len(v); i++ {
+				v[i] = nil
+			}
+			return v[:j]
+		}
+		// Aliased input slice — append survivors into a fresh node.
+		w := a.makeArray(0, len(v))
+		for _, x := range v {
+			if x != struct{}{} {
+				w = append(w, deleteEmpty(x, a))
 			}
 		}
-		for i := j; i < len(v); i++ {
-			v[i] = nil
-		}
-		return v[:j]
+		return w
 	default:
 		return v
 	}
