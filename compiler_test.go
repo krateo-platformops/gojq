@@ -12,7 +12,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/braghettos/gojq"
+	"github.com/itchyny/gojq"
 )
 
 func ExampleCompile() {

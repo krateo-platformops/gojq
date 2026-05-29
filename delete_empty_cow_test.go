@@ -36,7 +36,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/braghettos/gojq"
+	"github.com/itchyny/gojq"
 )
 
 // cowGuardTree builds a JSON tree where the deleted/updated path has

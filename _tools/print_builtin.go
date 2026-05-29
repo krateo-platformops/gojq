@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/braghettos/gojq"
+	"github.com/itchyny/gojq"
 )
 
 func main() {

@@ -10,7 +10,7 @@ import (
 
 	"github.com/itchyny/go-yaml"
 
-	"github.com/braghettos/gojq"
+	"github.com/itchyny/gojq"
 )
 
 type inputReader struct {

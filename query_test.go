@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/braghettos/gojq"
+	"github.com/itchyny/gojq"
 )
 
 func ExampleQuery_Run() {
