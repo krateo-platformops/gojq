@@ -1,0 +1,16 @@
+# gojq (Krateo fork) — LLM doc index (pinned: v0.13.0)
+# One line per file; regenerate the pin on release. This is a FORK of itchyny/gojq at
+# upstream v0.12.19 — this bundle documents the 3-file delta and how Krateo consumes it;
+# for the jq language / CLI / full API, upstream (github.com/itchyny/gojq) is authoritative.
+docs/index.md: the map — what this fork is + links to the whole bundle
+docs/overview.md: the fork delta vs upstream v0.12.19 — allocator-aware CoW deleteEmpty, the -race guard, replace-key module identity
+docs/usage.md: how Krateo components consume the fork — require itchyny/gojq + replace => krateo-platformops/gojq (verbatim snowplow shape)
+docs/configuration.md: the whole config surface — gojq_debug build tag, CLI env vars, per-Compile options
+docs/api.md: exported API identical to upstream v0.12.19; the one strengthened guarantee (read-only inputs under del/delpaths)
+docs/examples.md: index of the runnable examples
+docs/release.md: tag-only release convention — vX.Y.Z continuing upstream numbering; no OCI/images/GitHub-Releases
+docs/log.md: curated fork history (upstream history stays in CHANGELOG.md)
+examples/shared-input-cow/README.md: the delta demonstrated — concurrent del over one shared input, go run -race .
+examples/shared-input-cow/main.go: the compilable example (module-internal; imports the replace-key path)
+# Upstream corpus (authoritative for everything but the delta):
+CHANGELOG.md: upstream's changelog through the v0.12.19 fork point

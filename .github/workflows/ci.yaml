@@ -146,3 +146,7 @@ jobs:
           name: Release ${{ github.ref_name }}
           bodyFile: release-body.txt
           artifacts: goxz/*
+
+  lint-docs:
+    name: Lint docs
+    uses: krateo-platformops/.github/.github/workflows/lint-docs.yaml@main
