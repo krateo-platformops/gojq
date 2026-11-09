@@ -27,7 +27,8 @@ For orientation only (signatures and semantics: upstream reference above):
 - `gojq.Parse(string) (*Query, error)` — parse a jq program.
 - `gojq.Compile(*Query, ...CompilerOption) (*Code, error)` — compile once; a
   `*gojq.Code` is safe to reuse **read-only** across goroutines (snowplow reuses
-  compiled codes across items and serves).
+  compiled codes across items and serves). With this fork a `*Code` also holds
+  no state from its runs: the regexp cache is per run ([overview](./overview.md)).
 - `(*Code).Run(any, ...any) Iter` / `(*Code).RunWithContext` — execute; with this
   fork, `del`/`delpaths` inside the program never mutate the input value.
 - `gojq.ModuleLoader` / `gojq.NewModuleLoader` — module loading (snowplow's

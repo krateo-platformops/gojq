@@ -1,6 +1,9 @@
 package gojq
 
-import "context"
+import (
+	"context"
+	"regexp"
+)
 
 type env struct {
 	pc        int
@@ -17,6 +20,7 @@ type env struct {
 	label     int
 	args      [32]any // len(env.args) > maxarity
 	ctx       context.Context
+	regexps   map[[2]string]*regexp.Regexp // this run's compiled regexps, by (pattern, flags)
 }
 
 func newEnv(ctx context.Context) *env {

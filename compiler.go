@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 )
 
 type compiler struct {
@@ -21,7 +21,6 @@ type compiler struct {
 	builtinScope  *scopeinfo
 	scopes        []*scopeinfo
 	scopecnt      int
-	regexpCache   sync.Map
 }
 
 // Code is a compiled jq query.
@@ -1000,7 +999,7 @@ func (c *compiler) compileFunc(e *Func) error {
 			return nil
 		case "_match":
 			return c.compileCallInternal(
-				[3]any{c.funcMatch, len(e.Args), e.Name},
+				[3]any{envFunc(funcMatchInEnv), len(e.Args), e.Name},
 				e.Args,
 				true,
 				-1,
@@ -1288,8 +1287,18 @@ func listModuleDeps(q *Query) []any {
 	return deps
 }
 
-func (c *compiler) funcMatch(v any, args []any) any {
-	return funcMatch(v, args[0], args[1], args[2], &c.regexpCache)
+// envFunc is an internal function that needs its run's env: opcall passes
+// it the env along with the input and the arguments.
+type envFunc func(*env, any, []any) any
+
+// funcMatchInEnv is _match. The compiled regexps are cached on the env, so
+// they live for one run: a compiled *Code holds no state from any run, and
+// a pattern built from the input is not kept after the run ends.
+func funcMatchInEnv(env *env, v any, args []any) any {
+	if env.regexps == nil {
+		env.regexps = make(map[[2]string]*regexp.Regexp)
+	}
+	return funcMatch(v, args[0], args[1], args[2], env.regexps)
 }
 
 func (c *compiler) compileObject(e *Object) error {
