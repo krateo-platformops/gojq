@@ -12,6 +12,10 @@ timestamp: 2026-08-07T00:00:00Z
 Curated fork history, newest first. Upstream's own history (through the fork point)
 is [CHANGELOG.md](../CHANGELOG.md) and upstream's releases — not duplicated here.
 
+- **2026-11-09 — the regexp cache is per run.** Upstream's compiler-level regexp
+  cache kept every data-built pattern for the life of a reused `*Code`
+  (snowplow#1285 review); it now lives on the run's env. Guard:
+  `regexp_cache_test.go`.
 - **2026-08-07 — docs standard adoption.** This bundle; `lint-docs` appended to the
   PR CI.
 - **2026-08-03 — `v0.13.0`: module identity migrated to `krateo-platformops`**

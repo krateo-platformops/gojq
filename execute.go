@@ -183,7 +183,12 @@ loop:
 				for i := range argcnt {
 					args[i] = env.pop()
 				}
-				w := v[0].(func(any, []any) any)(x, args)
+				var w any
+				if f, ok := v[0].(func(any, []any) any); ok {
+					w = f(x, args)
+				} else {
+					w = v[0].(envFunc)(env, x, args)
+				}
 				if e, ok := w.(error); ok {
 					err = e
 					break loop

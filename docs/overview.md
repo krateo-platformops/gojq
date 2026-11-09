@@ -11,13 +11,15 @@ timestamp: 2026-08-07T00:00:00Z
 
 This is a **minimal fork**. Fork point: upstream tag `v0.12.19` (the last upstream
 commit in this repo's history is upstream's "bump up version to 0.12.19"). The full
-diff versus that tag — verify with `git diff v0.12.19..main --stat` — is **three
-files**:
+diff versus that tag — verify with `git diff v0.12.19..main --stat` — is two
+behavioral patches, their guards, and the module identity:
 
 | File | Change |
 |---|---|
 | `func.go` | allocator-aware `deleteEmpty` — the behavioral patch |
 | `delete_empty_cow_test.go` | fork-only concurrent `-race` regression guard (new file) |
+| `compiler.go`, `env.go`, `execute.go`, `func.go` | the regexp cache is per run (on the env), not on the compiler — see below |
+| `regexp_cache_test.go` | fork-only guards: flat retained heap over distinct patterns, reuse within a run, `-race` concurrent runs (new file) |
 | `go.mod` | module identity `github.com/krateo-platformops/gojq` + in-fork `replace github.com/itchyny/gojq => ./` |
 
 Everything else — parser, compiler, executor, builtins, CLI, docs — is upstream,
@@ -69,6 +71,23 @@ from many goroutines under `-race` (`make test` runs `go test -v -race ./...`);
 without the patch it reports dozens of races. It mirrors snowplow's in-process
 `TestShip2a_DeleteEmpty_CoW_NoInputMutation`.
 
+## The regexp cache is per run
+
+Upstream `v0.12.19` caches the regexps `test`/`match`/`capture`/`scan`/`split`/
+`sub`/`gsub` compile in a `sync.Map` **on the compiler**, which every run of the
+compiled `*Code` shares and nothing ever evicts. A consumer that compiles a
+program once and reuses it (snowplow caches its RESTAction filter programs)
+keeps, for the program's lifetime, every distinct pattern any run built from
+its input: per-request state carried across requests, unbounded (50,000
+distinct data-built patterns kept 56.1 MiB, measured).
+
+Here the cache lives on the run's `env`: a pattern reused across the items of
+one run is compiled once, as before; a compiled `*Code` holds nothing from any
+run, and a run's regexps go with the run. `_match` is an `envFunc` — an
+internal call `opcall` hands the run's env. `regexp_cache_test.go` pins all
+three properties (it fails upstream's way with a 47 MiB heap growth over 20,000
+patterns).
+
 ## Module identity (the replace-key shape)
 
 The module path is `github.com/krateo-platformops/gojq`, but **all self-imports in
@@ -85,7 +104,7 @@ this repo say `github.com/itchyny/gojq`**, resolved by the in-fork
   imports back to `./` via the in-fork replace (which is ignored when the fork is
   consumed as a dependency — the consumer's own replace covers it there).
 
-It also keeps the delta-vs-upstream diff minimal: no import rewrites, three files.
+It also keeps the delta-vs-upstream diff minimal: no import rewrites.
 
 ## Relationship to upstream
 

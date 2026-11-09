@@ -17,7 +17,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 	"unicode"
 	"unicode/utf8"
@@ -2004,7 +2003,7 @@ func funcNow(any) any {
 	return timeToEpoch(time.Now())
 }
 
-func funcMatch(v, re, fs, testing any, cache *sync.Map) any {
+func funcMatch(v, re, fs, testing any, cache map[[2]string]*regexp.Regexp) any {
 	var name string
 	if testing == true {
 		name = "test"
@@ -2075,10 +2074,10 @@ func funcMatch(v, re, fs, testing any, cache *sync.Map) any {
 	return res
 }
 
-func compileRegexp(re, flags string, cache *sync.Map) (*regexp.Regexp, error) {
+func compileRegexp(re, flags string, cache map[[2]string]*regexp.Regexp) (*regexp.Regexp, error) {
 	key := [2]string{re, flags}
-	if r, ok := cache.Load(key); ok {
-		return r.(*regexp.Regexp), nil
+	if r, ok := cache[key]; ok {
+		return r, nil
 	}
 	if strings.IndexFunc(flags, func(r rune) bool {
 		return r != 'g' && r != 'i' && r != 'm'
@@ -2095,7 +2094,7 @@ func compileRegexp(re, flags string, cache *sync.Map) (*regexp.Regexp, error) {
 	if err != nil {
 		return nil, fmt.Errorf("invalid regular expression %q: %s", re, err)
 	}
-	cache.Store(key, r)
+	cache[key] = r
 	return r, nil
 }
 
