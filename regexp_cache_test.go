@@ -29,16 +29,28 @@ func compileForTest(t testing.TB, q string, opts ...CompilerOption) *Code {
 	return code
 }
 
+// drain collects a run's outputs and fails the test on a run error. It calls
+// t.Fatal: call it on the test goroutine only (workers use collect).
 func drain(t testing.TB, iter Iter) []any {
 	t.Helper()
+	out, err := collect(iter)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+// collect is drain without the testing.TB: it returns the run's error, so a
+// worker goroutine can report it with t.Errorf and return.
+func collect(iter Iter) ([]any, error) {
 	var out []any
 	for {
 		v, ok := iter.Next()
 		if !ok {
-			return out
+			return out, nil
 		}
 		if err, isErr := v.(error); isErr {
-			t.Fatal(err)
+			return out, err
 		}
 		out = append(out, v)
 	}
@@ -115,7 +127,11 @@ func TestRegexpCache_ConcurrentRunsShareNothing(t *testing.T) {
 			defer wg.Done()
 			for r := 0; r < 200; r++ {
 				name := fmt.Sprintf("item-%d-%d", g, r)
-				got := drain(t, code.Run([]any{name, "item-other", "other"}, "^"+name+"$"))
+				got, err := collect(code.Run([]any{name, "item-other", "other"}, "^"+name+"$"))
+				if err != nil {
+					t.Errorf("goroutine %d run %d: %v", g, r, err)
+					return
+				}
 				if want := []any{[]any{true, false, false}}; !reflect.DeepEqual(got, want) {
 					t.Errorf("goroutine %d run %d: %v, want %v", g, r, got, want)
 					return
